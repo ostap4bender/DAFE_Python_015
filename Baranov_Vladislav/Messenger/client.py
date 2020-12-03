@@ -23,9 +23,8 @@ class Client(Socket):
         send_thread = Thread(target=self.send_data, args=(None, None, None,))
         send_thread.start()
 
-    def listen_server(self):
+    def listen_server(self, listened_socket=None):
         while True:
-
             input_nickname = self.recv(254)
             data = self.recv(254)
 
@@ -49,9 +48,6 @@ class Client(Socket):
                 if _input == '/quit':
                     self.status = 1
 
-    # def get_story(self):
-    #     self.send()
-
     def check_nickname(self):
         while True:
             self.nickname = input('Enter your nickname: ')
@@ -73,6 +69,7 @@ class Client(Socket):
     def check_channel(self):
 
         self.print_list_channels()
+
         while True:
 
             _input = input('Enter channel: ')
@@ -81,11 +78,11 @@ class Client(Socket):
 
             self.send(_input.encode('utf-8'))
             status = self.recv(254)
-
             if status.decode('utf-8') == 'wrong channel':
                 print('Error: nonexistent channel')
 
             elif status.decode('utf-8') == 'OK':
+                print('KO')
                 pass
 
             else:

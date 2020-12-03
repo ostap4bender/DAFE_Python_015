@@ -66,6 +66,8 @@ class Server(Socket):
             user_channel = user[2]
 
             if user_channel == channel:
+                nickname = nickname.decode('utf-8')
+                nickname = nickname.encode('utf-8')
                 user_socket.send(nickname)
                 user_socket.send(data)
 
@@ -80,6 +82,7 @@ class Server(Socket):
 
                 self.users[i][0].send('something'.encode('utf-8'))
                 self.users[i][0].send(data)
+
                 channel = self.get_user_channel(self.users[i][0], self.users[i][3], self.users[i][1])
                 self.users[i][2] = channel
 
@@ -110,6 +113,7 @@ class Server(Socket):
         return False
 
     def get_user_nickname(self, user_socket):
+        user_nickname = None
         while True:
             user_nickname = user_socket.recv(254)
             if not (self.find_name(user_nickname.decode('utf-8'))):
@@ -117,6 +121,7 @@ class Server(Socket):
                 break
             user_socket.send('wrong nickname'.encode('utf-8'))
         return user_nickname
+
 
     def get_user_channel(self, user_socket, list_of_channels, kkuser_nickname):
         Flag = False
@@ -148,8 +153,8 @@ class Server(Socket):
             kkuser_nickname = kkuser_nickname.decode('utf-8')
             kkuser_nickname += ' join the room'
             self.send_data('room'.encode('utf-8'), kkchannel, kkuser_nickname.encode('utf-8'))
-        self.give_story_to_user(user_socket, user_channel)
 
+        self.give_story_to_user(user_socket, user_channel)
 
         return user_channel
 
@@ -170,7 +175,7 @@ class Server(Socket):
             user_socket, address = self.accept()
             user_nickname = self.get_user_nickname(user_socket)
 
-            self.users.append([user_socket, user_nickname, 'Channel1'.encode('utf-8'), starter_list_channels])
+            self.users.append([user_socket, user_nickname, '0'.encode('utf-8'), starter_list_channels])
 
             user_channel = self.get_user_channel(self.users[-1][0], self.users[-1][3], self.users[-1][1])
             self.users[-1][2] = user_channel
