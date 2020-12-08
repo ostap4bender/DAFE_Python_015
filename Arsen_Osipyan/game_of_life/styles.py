@@ -30,6 +30,10 @@ INPUT_CSS = "background-color: #ddd;" \
             "color: #333;" \
             "font-size: 14px;"
 
+# Checkbox styles
+CHECKBOX_CSS = "color: #333;" \
+               "align: center;"
+
 # Cells styles
 CELL_CSS = "border: 1px solid #eee;"
 DEAD_CSS = CELL_CSS + \

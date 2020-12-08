@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QMainWindow, QPushButton, QApplication, QLineEdit
+from PyQt5.QtWidgets import QMainWindow, QPushButton, QApplication, QLineEdit, QCheckBox
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QIcon
 
@@ -25,6 +25,7 @@ class GameOfLife(QMainWindow):
         self.counter = 0       # counter of alive cells
         self.table = list()    # table of cells
         self.cache = list()    # cleared version
+        self.looped = False    # loop mode or finite mode
 
         # Constants
         self.cell_size = 20    # [px]
@@ -61,6 +62,10 @@ class GameOfLife(QMainWindow):
         self.input_h = QLineEdit(self)
         self.input_w = QLineEdit(self)
 
+        # Checkbox
+        self.check_looped = QCheckBox("Looped", self)
+        self.check_looped.stateChanged.connect(self.set_looped)
+
         # Table
         self.create_table(10, 10)  # default table size 40x20
 
@@ -81,6 +86,8 @@ class GameOfLife(QMainWindow):
 
         self.input_h.setStyleSheet(css.INPUT_CSS)
         self.input_w.setStyleSheet(css.INPUT_CSS)
+
+        self.check_looped.setStyleSheet(css.CHECKBOX_CSS)
 
         self.status.setStyleSheet(css.STATUS_CSS)
 
@@ -130,6 +137,11 @@ class GameOfLife(QMainWindow):
             MARGIN + 2 * EL_HEIGHT + 2 * EL_MARGIN,
             EL_FORM_WIDTH, EL_HEIGHT
         )
+        self.check_looped.setGeometry(
+            3 * MARGIN + self.cell_size * self.width + EL_MARGIN,
+            MARGIN + 3 * EL_HEIGHT + 3 * EL_MARGIN,
+            EL_WIDTH - 2*EL_MARGIN, 18
+        )
 
     def button_clicked(self):
         if not self.sender().status:
@@ -171,6 +183,11 @@ class GameOfLife(QMainWindow):
         self.generations += 1
         self.update_status()
         if self.counter == 0:
+            # We can use self.pause() if we can
+            # If we want to exit from simulation,
+            # we should use self.clear_table()
+            # If we want to pause table and not
+            # finish simulation - use self.pause()
             self.clear_table()
 
     def clear_clicked(self):
@@ -276,32 +293,53 @@ class GameOfLife(QMainWindow):
     def exit(self):
         self.close()
 
+    def set_looped(self):
+        self.looped = not self.looped
+
     def count(self, i, j):
         count = 0
-        if i > 0:
+        if self.looped:
+            if self.table[(i-1)%self.height][(j-1)%self.width].status:
+                count += 1
+            if self.table[i][(j-1)%self.width].status:
+                count += 1
+            if self.table[(i+1)%self.height][(j-1)%self.width].status:
+                count += 1
+            if self.table[(i-1)%self.height][(j+1)%self.width].status:
+                count += 1
+            if self.table[i][(j+1)%self.width].status:
+                count += 1
+            if self.table[(i+1)%self.height][(j+1)%self.width].status:
+                count += 1
+            if self.table[(i-1)%self.height][j].status:
+                count += 1
+            if self.table[(i+1)%self.height][j].status:
+                count += 1
+        else:
+            if i > 0:
+                if j > 0:
+                    if self.table[i - 1][j - 1].status:
+                        count += 1
+                if j < self.width - 1:
+                    if self.table[i - 1][j + 1].status:
+                        count += 1
+                if self.table[i - 1][j].status:
+                    count += 1
+            if i < self.height - 1:
+                if j > 0:
+                    if self.table[i + 1][j - 1].status:
+                        count += 1
+                if j < self.width - 1:
+                    if self.table[i + 1][j + 1].status:
+                        count += 1
+                if self.table[i + 1][j].status:
+                    count += 1
             if j > 0:
-                if self.table[i - 1][j - 1].status:
+                if self.table[i][j - 1].status:
                     count += 1
             if j < self.width - 1:
-                if self.table[i - 1][j + 1].status:
+                if self.table[i][j + 1].status:
                     count += 1
-            if self.table[i - 1][j].status:
-                count += 1
-        if i < self.height - 1:
-            if j > 0:
-                if self.table[i + 1][j - 1].status:
-                    count += 1
-            if j < self.width - 1:
-                if self.table[i + 1][j + 1].status:
-                    count += 1
-            if self.table[i + 1][j].status:
-                count += 1
-        if j > 0:
-            if self.table[i][j - 1].status:
-                count += 1
-        if j < self.width - 1:
-            if self.table[i][j + 1].status:
-                count += 1
         return count
 
 
