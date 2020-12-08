@@ -23,12 +23,11 @@ def main(serv, cl):
     def receiving(s):
         while not shutdown:
             try:
-                while True:
-                    data, addr = s.recvfrom(1024)
+                data, addr = s.recvfrom(1024)
+                print("{}".format(data.decode("utf-8")))
 
-                    print("{}".format(data.decode("utf-8")))
-            except RuntimeError:
-                pass
+            except BaseException:
+                break
 
     rt = threading.Thread(target=receiving, args=(sock,))
     rt.start()
@@ -43,11 +42,11 @@ def main(serv, cl):
             if message != "":
                 sock.sendto(f"{message}".encode("utf-8"), server)
 
-        except BaseException:
-            sock.sendto(f"/exit".encode("utf-8"), server)
+        except (RuntimeError, KeyboardInterrupt):
             shutdown = True
+            sock.sendto(f"/exit".encode("utf-8"), server)
+            break
 
-    rt.join()
     sock.close()
 
 

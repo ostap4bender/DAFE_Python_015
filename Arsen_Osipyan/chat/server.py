@@ -1,6 +1,9 @@
 import socket
 import time
 import config
+import signal
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 
 clients = []
@@ -16,7 +19,7 @@ class Room:
     def publish(self, serv, addr, msg):
         self.history.append((addr, self.subs[get_client(addr)], msg))
         for cl in self.subs.keys():
-            if cl.addr != addr:
+            if cl.addr != addr and cl.cur_room == self.name:
                 serv.sendto("[{}] {}".format(self.subs[get_client(addr)], msg).encode('utf-8'), cl.addr)
 
     def send_history(self, serv, addr):
@@ -183,9 +186,9 @@ def main(host, port):
             else:               # handling common messages
                 handle_message(server, data, addr)
 
-            time.sleep(0.1)
+            time.sleep(0.5)
 
-        except RuntimeError:
+        except BaseException:
             print("[Server] Server stopped")
             break
 
