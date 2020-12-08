@@ -21,7 +21,7 @@ class Room:
 
     def send_history(self, serv, addr):
         if len(self.history) <= config.ROOM_STORY_LENGTH:
-            for msg in self.history[::-1]:
+            for msg in self.history:
                 serv.sendto("[{}] {}".format(msg[1], msg[2]).encode('utf-8'), addr)
         else:
             for msg in self.history[:-config.ROOM_STORY_LENGTH-1:-1]:
@@ -51,7 +51,6 @@ def get_room(name):
 
 def generate_msg(msg):
     return "[Server] {}".format(msg).encode("utf-8")
-
 
 
 def handle_command(serv, msg, addr):

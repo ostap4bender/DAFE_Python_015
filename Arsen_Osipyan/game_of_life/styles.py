@@ -1,21 +1,38 @@
-MARGIN_TB = 20
-MARGIN_LR = 20
-MARGIN_BTN = MARGIN_TB / 2
-BTN_WIDTH = 150
-BTN_HEIGHT = 40
-SIDEBAR_WIDTH = 2 * MARGIN_LR + BTN_WIDTH
+# Window styles
+WINDOW_CSS = "background-color: #fff;" \
+             "font-family: Arial;" \
+             "text-transform: uppercase;" \
+             "font-weight: 800;"
 
-NON_ACTIVE_STYLE = "background-color: #ddd; border: 1px solid #eee;"
-ACTIVE_STYLE = "border: 1px solid #eee; background-color: #28A745;"
+# Buttons styles
+BUTTON_CSS = "border-radius: 0.4em;" \
+             "font-size: 14px;" \
+             "color: #fff;" \
+             "border: 0;"
+START_CSS = BUTTON_CSS + \
+            "background-color: #007bff;"
+CLEAR_CSS = BUTTON_CSS + \
+            "background-color: #007bff;"
+CLOSE_CSS = BUTTON_CSS + \
+            "background-color: #dc3545;"
+CONFIRM_CSS = BUTTON_CSS + \
+              "background-color: #007bff;"
 
-WINDOW_STYLE = "background-color: #fff; border: 0; font-family: Arial; font-size: 14px;" \
-               "text-transform: uppercase; font-weight: 600; color: #fff;"
+# Status bar styles
+STATUS_CSS = "color: #333;" \
+             "font-size: 12px;" \
+             "font-weight: 800;"
 
-BTN_STYLE = "border-radius: 0.4em;"
-BTN_START_STYLE = "background-color: #007bff;" + BTN_STYLE
-BTN_CLOSE_STYLE = "background-color: #dc3545;" + BTN_STYLE
-BTN_OK_STYLE = "background-color: #007bff;" + BTN_STYLE
+# Input styles
+INPUT_CSS = "background-color: #ddd;" \
+            "border: 1px solid #eee;" \
+            "border-radius: 0.4em;" \
+            "color: #333;" \
+            "font-size: 14px;"
 
-INPUT_STYLE = "background-color: #ddd; border: 1px solid #eee; border-radius: 0.4em; color: #333;"
-
-STATUS_STYLE = "color: #333; font-size: 12px; font-weight: 800;"
+# Cells styles
+CELL_CSS = "border: 1px solid #eee;"
+DEAD_CSS = CELL_CSS + \
+           "background-color: #ddd;"
+ALIVE_CSS = CELL_CSS + \
+            "background-color: #28A745;"
