@@ -7,8 +7,14 @@ import time
 
 from PyQt5.QtWidgets import QWidget, QApplication, QGridLayout, QFrame
 
+colors = ['white', 'black', 'red', 'orange', 'yellow', 'green', 'blue', 'purple']
+colors_ = {'white' : '#ffffff', 'black' : '#000000', 'red' : '#ff0000', 'orange' : '#ffa500',
+           'yellow' : '#fff44f', 'green' : '#66ff00', 'blue' : '#0000ff', 'purple' : '#a020f0'}
+
 class Field(QWidget):
     def __init__(self, parent, x_max, y_max, w, h):
+        self.alive_c = 1
+        self.dead_c = 0
         super().__init__(parent)
         self.w = w
         self.h = h
@@ -25,7 +31,7 @@ class Field(QWidget):
             tmp = []
             for y in range(self.y_max):
                 btn = QPushButton()
-                btn.setStyleSheet("background-color:white")
+                btn.setStyleSheet("background-color:" + colors[self.dead_c])
                 btn.setObjectName(str(x) + ' '+ str(y))
                 btn.setFixedSize(self.w/self.x_max, self.h/self.y_max)
                 btn.clicked.connect(self.on_click)
@@ -44,7 +50,15 @@ class Field(QWidget):
             self.alive[i] = False
         for x in range(self.x_max):
             for y in range(self.y_max):
-                self.field[x][y].setStyleSheet("background-color:white")
+                self.field[x][y].setStyleSheet("background-color:" + colors[self.dead_c])
+
+    def reset(self):
+        for x in range(self.x_max):
+            for y in range(self.y_max):
+                if self.alive[str(x) + ' ' + str(y)]:
+                    self.field[x][y].setStyleSheet("background-color:" + colors[self.alive_c])
+                else:
+                    self.field[x][y].setStyleSheet("background-color:" + colors[self.dead_c])
 
     def get_alive_neighbors(self, cell, cells, a):
         x, y = (cell.split(' '))
@@ -78,14 +92,13 @@ class Field(QWidget):
         return b
 
     def on_click(self):
-
         sender = self.sender()
-        if sender.palette().button().color().name() == '#ffffff':
+        if sender.palette().button().color().name() == colors_[colors[self.dead_c]]:
             self.alive[sender.objectName()] = True
-            self.col = "background-color:black"
+            self.col = "background-color:" + colors[self.alive_c]
         else:
             self.alive[sender.objectName()] = False
-            self.col = "background-color:white"
+            self.col = "background-color:" + colors[self.dead_c]
         sender.setStyleSheet(self.col)
 
     def process(self):
@@ -97,9 +110,9 @@ class Field(QWidget):
         for x in range(self.x_max):
             for y in range(self.y_max):
                 if changed_alive[str(x) + ' ' + str(y)]:
-                    self.field[x][y].setStyleSheet("background-color:black")
+                    self.field[x][y].setStyleSheet("background-color:" + colors[self.alive_c])
                 else:
-                    self.field[x][y].setStyleSheet("background-color:white")
+                    self.field[x][y].setStyleSheet("background-color:" + colors[self.dead_c])
         self.alive = changed_alive
         return key
 
@@ -146,10 +159,44 @@ class MainWindow(QMainWindow):
 
         self.timer = QBasicTimer()
         self.is_continue = True
+        self.alive_color()
+        self.dead_color()
         self.show()
 
     def clean(self):
         self.field.clean()
+
+    def alive_color(self):
+        self.alive_color = QComboBox(self)
+        label = QLabel("Color of alive", self)
+        label.move(0, 0)
+        self.alive_color.addItem('black')
+        self.alive_color.addItem('white')
+        self.alive_color.addItems(colors[1:])
+        self.alive_color.move(0, 50)
+        self.alive_color.activated[str].connect(self.change_alive_color)
+
+    def dead_color(self):
+        self.dead_color = QComboBox(self)
+        dlabel = QLabel("Color of dead", self)
+        dlabel.move(0, 100)
+        self.dead_color.addItems(colors)
+        self.dead_color.move(0, 150)
+        self.dead_color.activated[str].connect(self.change_dead_color)
+
+    def change_alive_color(self, text):
+        for i in range(len(colors)):
+            if colors[i] == text:
+                if i != self.field.dead_c:
+                    self.field.alive_c = i
+        self.field.reset()
+
+    def change_dead_color(self, text):
+        for i in range(len(colors)):
+            if colors[i] == text:
+                if i != self.field.alive_c:
+                    self.field.dead_c = i
+        self.field.reset()
 
     def step(self):
         self.is_continue = self.field.process()
