@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QApplication, QLineEdit, QCheckBox
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QIcon
+import random
 
 import styles as css
 
@@ -12,6 +13,14 @@ EL_WIDTH = 160
 EL_HEIGHT = 35
 EL_FORM_WIDTH = int((EL_WIDTH - 2 * EL_MARGIN)/3)
 SIDEBAR_WIDTH = 2 * MARGIN + EL_WIDTH
+
+# Default: BURN(3) / SURVIVE(2, 3) / RANDOM(False) / RAND_RARE(1)
+# Interest: BURN(5,6,7,8) / SURVIVE(4,5,6,7,8) / RANDOM(True) / RAND_RARE(2)
+# Interest: BURN(1) / SURVIVE(0,1,2,3,4,5,6,7,8) / RANDOM(False) / RAND_RARE(1)
+BURN = (5, 6, 7, 8)
+SURVIVE = (4, 5, 6, 7, 8)
+RANDOM = True
+RAND_RARE = 2
 
 
 class GameOfLife(QMainWindow):
@@ -28,11 +37,11 @@ class GameOfLife(QMainWindow):
         self.looped = False    # loop mode or finite mode
 
         # Constants
-        self.cell_size = 20    # [px]
-        self.max_height = 48   # [cells]
-        self.max_width = 48    # [cells]
-        self.min_height = 10   # [cells]
-        self.min_width = 10    # [cells]
+        self.cell_size = 10    # [px]
+        self.max_height = 80   # [cells]
+        self.max_width = 80    # [cells]
+        self.min_height = 20   # [cells]
+        self.min_width = 20    # [cells]
 
         self.initUI()
 
@@ -67,7 +76,7 @@ class GameOfLife(QMainWindow):
         self.check_looped.stateChanged.connect(self.set_looped)
 
         # Table
-        self.create_table(10, 10)  # default table size 40x20
+        self.create_table(self.max_width, self.max_height)
 
         # Geometry
         self.set_geometry()
@@ -76,7 +85,7 @@ class GameOfLife(QMainWindow):
         self.setWindowTitle('Game Of Life')
 
         # Styles applying
-        self.setWindowIcon(QIcon("gol_icon.png"))
+        self.setWindowIcon(QIcon("./gol_icon.png"))
         self.setStyleSheet(css.WINDOW_CSS)
 
         self.btn_start.setStyleSheet(css.START_CSS)
@@ -170,11 +179,11 @@ class GameOfLife(QMainWindow):
 
         for i in range(self.height):
             for j in range(self.width):
-                if cur_gen[i][j] == 3 and not self.table[i][j].status:
+                if cur_gen[i][j] in BURN and not self.table[i][j].status:
                     self.table[i][j].status = True
                     self.table[i][j].setStyleSheet(css.ALIVE_CSS)
                     self.counter += 1
-                elif cur_gen[i][j] not in (2, 3) and self.table[i][j].status:
+                elif cur_gen[i][j] not in SURVIVE and self.table[i][j].status:
                     self.table[i][j].status = False
                     self.table[i][j].setStyleSheet(css.DEAD_CSS)
                     self.counter -= 1
@@ -274,13 +283,20 @@ class GameOfLife(QMainWindow):
             self.table.append(list())
             for j in range(w):
                 tmp = QPushButton("", self)
-                tmp.setStyleSheet(css.DEAD_CSS)
                 tmp.clicked.connect(self.button_clicked)
-                tmp.status = False
                 tmp.setGeometry(
                     MARGIN + j * self.cell_size, MARGIN + i * self.cell_size,
                     self.cell_size, self.cell_size
                 )
+                if RANDOM:
+                    tmp.status = not bool(random.randint(0, RAND_RARE-1))
+                    if tmp.status:
+                        tmp.setStyleSheet(css.ALIVE_CSS)
+                    else:
+                        tmp.setStyleSheet(css.DEAD_CSS)
+                else:
+                    tmp.status = False
+                    tmp.setStyleSheet(css.DEAD_CSS)
                 self.table[i].append(tmp)
                 self.table[i][-1].show()
 
