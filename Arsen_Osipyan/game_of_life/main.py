@@ -13,14 +13,15 @@ EL_WIDTH = 160
 EL_HEIGHT = 35
 EL_FORM_WIDTH = int((EL_WIDTH - 2 * EL_MARGIN)/3)
 SIDEBAR_WIDTH = 2 * MARGIN + EL_WIDTH
+TEXT_H = 18
 
-# Default: BURN(3) / SURVIVE(2, 3) / RANDOM(False) / RAND_RARE(1)
-# Interest: BURN(5,6,7,8) / SURVIVE(4,5,6,7,8) / RANDOM(True) / RAND_RARE(2)
-# Interest: BURN(1) / SURVIVE(0,1,2,3,4,5,6,7,8) / RANDOM(False) / RAND_RARE(1)
-BURN = (5, 6, 7, 8)
-SURVIVE = (4, 5, 6, 7, 8)
-RANDOM = True
-RAND_RARE = 2
+# Default: BURN(3,) / SURVIVE(2, 3)
+# Interest: BURN(5,6,7,8) / SURVIVE(4, 5, 6, 7, 8) draw line
+# Interest: BURN(1,) / SURVIVE(0, 1, 2, 3, 4, 5, 6, 7, 8)
+# Interest: BURN(3,) / SURVIVE(1, 2, 3, 4, 5, 6, 7, 8)
+# Interest: BURN(1, 2, 3, 4) / SURVIVE(6, 7, 8) one cell in the center
+BURN = (1, 2, 3, 4)
+SURVIVE = (6, 7, 8)
 
 
 class GameOfLife(QMainWindow):
@@ -28,20 +29,22 @@ class GameOfLife(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.height = 0        # [cells]
-        self.width = 0         # [cells]
-        self.generations = 0   # number of generations
-        self.counter = 0       # counter of alive cells
-        self.table = list()    # table of cells
-        self.cache = list()    # cleared version
-        self.looped = False    # loop mode or finite mode
+        self.height = 0         # [cells]
+        self.width = 0          # [cells]
+        self.generations = 0    # number of generations
+        self.counter = 0        # counter of alive cells
+        self.table = list()     # table of cells
+        self.cache = list()     # cleared version
+        self.looped = False     # loop mode or finite mode
+        self.random = False     # random generation
+        self.random_rarity = 2  # if self.random = True
 
         # Constants
-        self.cell_size = 10    # [px]
-        self.max_height = 80   # [cells]
-        self.max_width = 80    # [cells]
-        self.min_height = 20   # [cells]
-        self.min_width = 20    # [cells]
+        self.cell_size = 10     # [px]
+        self.max_height = 80    # [cells]
+        self.max_width = 80     # [cells]
+        self.min_height = 24    # [cells]
+        self.min_width = 24     # [cells]
 
         self.initUI()
 
@@ -72,8 +75,11 @@ class GameOfLife(QMainWindow):
         self.input_w = QLineEdit(self)
 
         # Checkbox
-        self.check_looped = QCheckBox("Looped", self)
+        self.check_looped = QCheckBox("looped table", self)
         self.check_looped.stateChanged.connect(self.set_looped)
+
+        self.check_random = QCheckBox("random", self)
+        self.check_random.stateChanged.connect(self.set_random)
 
         # Table
         self.create_table(self.max_width, self.max_height)
@@ -97,6 +103,7 @@ class GameOfLife(QMainWindow):
         self.input_w.setStyleSheet(css.INPUT_CSS)
 
         self.check_looped.setStyleSheet(css.CHECKBOX_CSS)
+        self.check_random.setStyleSheet(css.CHECKBOX_CSS)
 
         self.status.setStyleSheet(css.STATUS_CSS)
 
@@ -147,9 +154,14 @@ class GameOfLife(QMainWindow):
             EL_FORM_WIDTH, EL_HEIGHT
         )
         self.check_looped.setGeometry(
-            3 * MARGIN + self.cell_size * self.width + EL_MARGIN,
+            3 * MARGIN + self.cell_size * self.width,
             MARGIN + 3 * EL_HEIGHT + 3 * EL_MARGIN,
-            EL_WIDTH - 2*EL_MARGIN, 18
+            EL_WIDTH - 2*EL_MARGIN, TEXT_H
+        )
+        self.check_random.setGeometry(
+            3 * MARGIN + self.cell_size * self.width,
+            MARGIN + 3 * EL_HEIGHT + 4 * EL_MARGIN + TEXT_H,
+            EL_WIDTH - 2*EL_MARGIN, TEXT_H
         )
 
     def button_clicked(self):
@@ -288,8 +300,8 @@ class GameOfLife(QMainWindow):
                     MARGIN + j * self.cell_size, MARGIN + i * self.cell_size,
                     self.cell_size, self.cell_size
                 )
-                if RANDOM:
-                    tmp.status = not bool(random.randint(0, RAND_RARE-1))
+                if self.random:
+                    tmp.status = not bool(random.randint(0, self.random_rarity-1))
                     if tmp.status:
                         tmp.setStyleSheet(css.ALIVE_CSS)
                     else:
@@ -312,24 +324,27 @@ class GameOfLife(QMainWindow):
     def set_looped(self):
         self.looped = not self.looped
 
+    def set_random(self):
+        self.random = not self.random
+
     def count(self, i, j):
         count = 0
         if self.looped:
-            if self.table[(i-1)%self.height][(j-1)%self.width].status:
+            if self.table[(i-1) % self.height][(j-1) % self.width].status:
                 count += 1
-            if self.table[i][(j-1)%self.width].status:
+            if self.table[i][(j-1) % self.width].status:
                 count += 1
-            if self.table[(i+1)%self.height][(j-1)%self.width].status:
+            if self.table[(i+1) % self.height][(j-1) % self.width].status:
                 count += 1
-            if self.table[(i-1)%self.height][(j+1)%self.width].status:
+            if self.table[(i-1) % self.height][(j+1) % self.width].status:
                 count += 1
-            if self.table[i][(j+1)%self.width].status:
+            if self.table[i][(j+1) % self.width].status:
                 count += 1
-            if self.table[(i+1)%self.height][(j+1)%self.width].status:
+            if self.table[(i+1) % self.height][(j+1) % self.width].status:
                 count += 1
-            if self.table[(i-1)%self.height][j].status:
+            if self.table[(i-1) % self.height][j].status:
                 count += 1
-            if self.table[(i+1)%self.height][j].status:
+            if self.table[(i+1) % self.height][j].status:
                 count += 1
         else:
             if i > 0:
