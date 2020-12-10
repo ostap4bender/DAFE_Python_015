@@ -16,11 +16,14 @@ server_socket.listen()
 sockets_list = [server_socket]
 clients = {}
 
-rooms = {"default": {"sockets":[server_socket], "history": ['1', '2','3','server started', 'default room'], "names":[]}}
+default_history = ['server> 1', 'server> 2','server> 3','server> server started', 'server> default room']
+
+rooms = {"default": {"sockets":[server_socket], "history": default_history, "names":[]}}
 users_online = []
 
 optional_comands = ["\create  -  to create a room", "\sub  to subscribe to existing room",
-                    "\cancel  -  to cancel while subscr.", "\exit  -  to leave the server"]
+                    "\cancel  -  to cancel while subscr.", "\exit  -  to leave the server"
+                    "\switch  -  to start texting to another room"]
 
 def wrap_send_msg(message):
     msg_header = f"{len(message):< {HEADER_LENGTH}}".encode("utf-8")
@@ -36,6 +39,7 @@ def receive_message(client_socket):
         if not len(message_header):
             return  False
         
+        #print(client_socket, "sends", len(message_header), "-len while it is", message_header)
         message_length = int(message_header.decode("utf-8").strip())
         return { "header": message_header, "data": client_socket.recv(message_length) }
         
@@ -44,11 +48,12 @@ def receive_message(client_socket):
         return False
     
     
-def get_room_name(client_socket):
+def get_room_name(client_socket, promt = True):
     try:
-        msg = wrap_send_msg("input room name")
+        if promt:
+            msg = wrap_send_msg("input room name")
+            client_socket.send(bytes(msg))
         
-        client_socket.send(bytes(msg))
         message_header = client_socket.recv(HEADER_LENGTH)
         
         if not len(message_header):
@@ -65,28 +70,26 @@ def get_room_name(client_socket):
         return False 
     
 def connect_client(user, client_socket, server_socket, rooms):
-    '''
-    welcome_message = "Hi on the chat server!" #Please choose one of avalible chat-rooms:\n"
-    for room in rooms:
-        welcome_message += (room + '\n')
-    welcome_message += "Or create your own ( to do that input \create )"
-    '''
-    welcome_message = "Hi on the chat server!\nOptional commands:\n"
+
+    username = user['data'].decode('utf-8')
+    
+    welcome_message = f"Hi, {username}!\nYou've connected to the soket-chat server!\nOptional commands:\n"
     for cmd in optional_comands:
         welcome_message += (cmd + '\n')
-    
+    welcome_message += "Rules: no empty messages (after sending them you became banned)\n"
     welcome_message = wrap_send_msg(welcome_message)
     client_socket.send(bytes(welcome_message))
     
-    username = user['data'].decode('utf-8')
     user = receive_message(client_socket)
     
     result = False
     while user != False:
+        
         user_ans = user["data"].decode("utf-8")
         if user_ans == "\create":
             
             print(f"User {username} wants to create a room")
+            
             new_name = get_room_name(client_socket)
             
             if not new_name:
@@ -110,12 +113,18 @@ def connect_client(user, client_socket, server_socket, rooms):
             rooms[new_name] = {"sockets":[server_socket, client_socket], "history": [], "names":[username]}
         
             print(f"room {new_name} created.")
-            result = True
-            #print(rooms)
-            break
+            return new_name
+            
         elif user_ans == "\sub":
-            print("uh he wants in a room")
-            target = get_room_name(client_socket)
+            print(f"User {username} he wants in a room")
+            
+            rms = "Rooms:\n"
+            for rm in rooms:
+                rms += (f"[{rm}]" + '\n')
+            rms += "\ninput room name"
+            client_socket.send(bytes(wrap_send_msg(rms)))            
+            
+            target = get_room_name(client_socket, False)
             if not target:
                 client_socket.send(bytes(wrap_send_msg(f"Cant connect.")))
                 user = receive_message(client_socket)
@@ -137,7 +146,12 @@ def connect_client(user, client_socket, server_socket, rooms):
             rooms[target]["sockets"].append(client_socket)
             rooms[target]["names"].append(username)
             #sending history...
-            return True
+            histr = "Messages from room " + target + ":\n"
+            for msg in rooms[target]["history"]:
+                histr += (f"[{target}]{msg}" + '\n')
+            histr += "push spacce and Enter to continue"
+            client_socket.send(bytes(wrap_send_msg(histr)))
+            return target
     
 
         elif user_ans == "\exit":
@@ -168,31 +182,64 @@ while True:
             if user == False:
                 continue
             
-            sockets_list.append(client_socket)
+            #sockets_list.append(client_socket)
             
-            clients[client_socket] = user
             
             print(f"Accepted new connection from {client_address[0]}:{client_address[1]} username {user['data'].decode('utf-8')}")    
             
-            connected = connect_client(user, client_socket, server_socket, rooms)
-            print("ok ----- roommm  got him")
-            if connected:
+            user_room = connect_client(user, client_socket, server_socket, rooms)
+            
+            if user_room:
                 sockets_list.append(client_socket)
-                client_socket.send(bytes(wrap_send_msg("connected")))
+                clients[client_socket] = user
+                client_socket.send(bytes(wrap_send_msg("connected" + user_room)))
                                
         else:
             message = receive_message(notified_socket)
             
             if message is False:
+                continue
+            
+            '''
+            if message is False:
                 print(f"Closed connection from {clients[notified_socket]['data'].decode('utf-8')}")
                 sockets_list.remove(notified_socket)
                 del clients[notified_socket]
-                continue
+                continue'''
             
             user = clients[notified_socket]
             
             
+            #check if its a command:
+            msg_data = message['data'].decode('utf-8')
+            
+            '''
+            if msg_data in optional_comands:
+                cmd = msg_data
+                if cmd == "\exit":
+                    #removing notified socket from everything
+                    pass
+                elif cmd == "\switch":
+                    #switching the room to wich user writes
+                    pass
+                elif cmd == "\create":
+                    #creating a new room
+                    pass
+                elif cmd == "\sub":
+                    #adding user to the room
+                    pass
+                continue
+            '''
             print(f"Received message from {user['data'].decode('utf-8')}: {message['data'].decode('utf-8')}")
+            
+            
+            #Here wewant to send it only to the user with common rooms
+            #Or only for one room
+            #Only for users from curent room of user
+            
+            #what we send:
+            
+            #text = user['header'] + user['data'] + message['header'] + message['data']
             
             for client_socket in clients:
                 if client_socket != notified_socket:

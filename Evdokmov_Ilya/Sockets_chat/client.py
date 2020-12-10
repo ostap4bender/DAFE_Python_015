@@ -21,8 +21,12 @@ def wrap_send_msg(message):
     msg_header = f"{len(message):< {HEADER_LENGTH}}".encode("utf-8")
     return msg_header + message.encode("utf-8")
 
+
+
+current_room = ""
 connected = False
 while not connected:
+    
     try:
         server_header = client_soket.recv(HEADER_LENGTH)
         server_length = int(server_header.decode("utf-8"))
@@ -30,19 +34,19 @@ while not connected:
         
         print(f"{server}")
         
-        if server == "connected":
-            print("loading history of room")
-            time.sleep(1)
-            #print_history()
-            print("printed")
+        key_word = "connected"
+        if server[:len(key_word)] == "connected":
+            current_room = server[len(key_word):]
+            print(f"Now in the room {current_room}")
             connected = True
             break
-            
-        message = input(f"{my_username} (not active)>") 
+        
+        message = input(f"[{current_room}]{my_username}(not active)>") 
         if message:
             message = message.encode("utf-8")
             message_header = f"{len(message):< {HEADER_LENGTH}}".encode("utf-8")
             client_soket.send(message_header + message)
+                
     
         
     except IOError as e:
@@ -57,11 +61,12 @@ while not connected:
     
 
 
+roominfo = (f"from [{current_room}]: ").encode("utf-8")
 while True:
-    message = input(f"{my_username}  > ")
+    message = input(f"[{current_room}]{my_username} > ")
     
     if message:
-        message = message.encode("utf-8")
+        message = roominfo + message.encode("utf-8")
         message_header = f"{len(message):< {HEADER_LENGTH}}".encode("utf-8")
         client_soket.send(message_header + message)
     
