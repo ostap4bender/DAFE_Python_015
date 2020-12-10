@@ -15,7 +15,15 @@ def get_input_data(encoded_string):
                 message = message + '}'
             reconstructed_messages.append(message)
 
-    input_data = [json.loads(message) for message in reconstructed_messages]
+    input_data = []
+    for message in reconstructed_messages:
+        # check if message is a valid json
+        try:
+            proccessed_message = json.loads(message)
+            input_data.append(proccessed_message)
+        except json.decoder.JSONDecodeError:
+            pass
+
     return input_data
 
 
