@@ -166,9 +166,8 @@ while True:
             message = receive_message(notified_socket)
             
             if message is False:
-                print(f"Closed connection from {clients[notified_socket]['data'].decode('utf-8')}")
-                sockets_list.remove(notified_socket)
-                del clients[notified_socket]
+                print(f"Closed connection from {clients[notified_socket][0]['data'].decode('utf-8')}")
+                remove_client(notified_socket, rooms, clients)
                 continue
             
             user = clients[notified_socket]
@@ -180,7 +179,7 @@ while True:
             msg_cmd, msg_room = get_command(msg_data)
             
             if msg_cmd in optional_commands:
-                print(f"command {msg_cmd} from user {username}, targeted room {msg_room}")
+                print(f"command {msg_cmd} from user {username}, targeted room [{msg_room}]")
                 cmd = msg_cmd
                 if cmd == "\exit":
                     #removing notified_socket from everything
@@ -201,15 +200,20 @@ while True:
                             continue
                         
                         prev_room = clients[notified_socket][1]["active"]
+                        #debug:
+                        print(f"{username} leaving room [{prev_room}]")
+                        print(f"subs of user {username}: {user[1]['subs']}")
                         if not (prev_room in user[1]["subs"]):
                             rooms[prev_room]["sockets"].remove(notified_socket)
                             rooms[prev_room]["names"].remove(username)
+                            print("removing suc.")
                         
-                        clients[notified_socket][1]["active"] = rm_name
+                        clients[notified_socket][1]['active'] = msg_room
+                        print(f"User active room now is: ", clients[notified_socket][1]['active'])
                         notified_socket.send(bytes(wrap_send_msg(KEYWORD_SWITCH + msg_room)))
                         if not (notified_socket in rooms[msg_room]["sockets"]):
                             rooms[msg_room]["sockets"].append(notified_socket)
-                            rooms[msg_room]["names"].append(username)
+                        rooms[msg_room]["names"].append(username)
                             
                     else:
                         notified_socket.send(bytes(wrap_send_msg("server>")))
@@ -218,6 +222,7 @@ while True:
                 elif cmd == "\create":
                     if not msg_room:
                         notified_socket.send(bytes(wrap_send_msg("Cant create the room with no name.")))
+                        
                     rm_name = create_room(msg_room, notified_socket, rooms)
                     if rm_name:
                         print(f"[{rm_name}] room created succesfully by {username}")
