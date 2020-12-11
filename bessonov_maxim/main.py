@@ -2,7 +2,6 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-import time
 
 
 from PyQt5.QtWidgets import QWidget, QApplication, QGridLayout, QFrame
@@ -13,6 +12,7 @@ colors_ = {'white' : '#ffffff', 'black' : '#000000', 'red' : '#ff0000', 'orange'
 
 class Field(QWidget):
     def __init__(self, parent, x_max, y_max, w, h):
+        self.cycled_field = False
         self.alive_c = 1
         self.dead_c = 0
         super().__init__(parent)
@@ -64,10 +64,21 @@ class Field(QWidget):
         x, y = (cell.split(' '))
         alive_neighbors = []
         neighbors = []
-        for i in range(0, 3):
-            for j in range(0, 3):
-                if not i == j == 1:
-                    neighbors.append(str(int(x) + i - 1) + ' ' + str(int(y) + j - 1))
+        if not self.cycled_field:
+            for i in range(0, 3):
+                for j in range(0, 3):
+                    if not i == j == 1:
+                        neighbors.append(str(int(x) + i - 1) + ' ' + str(int(y) + j - 1))
+        else:
+            h, w = self.y_max, self.x_max
+            neighbors.append(str((w + int(x) - 1)%w) + ' ' + str((h + int(y) - 1)%h))
+            neighbors.append(str((w + int(x) - 1)%w) + ' ' + str(int(y)))
+            neighbors.append(str((w + int(x) - 1)%w) + ' ' + str((h + int(y) + 1)%h))
+            neighbors.append(str(int(x)) + ' ' + str((h + int(y) + 1)%h))
+            neighbors.append(str((w + int(x) + 1)%w) + ' ' + str((h + int(y) + 1)%h))
+            neighbors.append(str((w + int(x) + 1)%w) + ' ' + str(int(y)))
+            neighbors.append(str((w + int(x) + 1)%w) + ' ' + str((h + int(y) - 1)%h))
+            neighbors.append(str(int(x)) + ' ' + str((h + int(y) - 1)%h))
         for nei in neighbors:
             if nei in cells:
                 if a[nei]:
@@ -161,6 +172,7 @@ class MainWindow(QMainWindow):
         self.is_continue = True
         self.alive_color()
         self.dead_color()
+        self.field_type()
         self.show()
 
     def clean(self):
@@ -183,6 +195,19 @@ class MainWindow(QMainWindow):
         self.dead_color.addItems(colors)
         self.dead_color.move(0, 150)
         self.dead_color.activated[str].connect(self.change_dead_color)
+
+    def field_type(self):
+        self.field_type = QComboBox(self)
+        flabel = QLabel("Type of field", self)
+        flabel.move(0, 200)
+        self.field_type.addItem('non cycled(default)')
+        self.field_type.addItem('cycled')
+        self.field_type.move(0, 250)
+        self.field_type.activated[str].connect(self.change_field_type)
+
+    def change_field_type(self, text):
+        self.field.cycled_field = (text[0] == 'c')
+        #self.field.reset()
 
     def change_alive_color(self, text):
         for i in range(len(colors)):
