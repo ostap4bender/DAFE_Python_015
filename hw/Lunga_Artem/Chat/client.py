@@ -15,8 +15,11 @@ def reading_socket():
 potok = threading.Thread(target=reading_socket)
 potok.start()
 
-s = []
-
 while True:
-    message = input()
-    sor.sendto((message).encode('utf-8'), SERVER_ADDRESS)
+    try:
+        message = input()
+    except KeyboardInterrupt:
+        sor.close()
+        break
+    else:
+        sor.sendto((message).encode('utf-8'), SERVER_ADDRESS)
