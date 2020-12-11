@@ -11,6 +11,7 @@ PORT = 3000
 KEYWORD_DICONNECT = "00934283979723"
 KEYWORD_CREATE = "0000983275890"
 KEYWORD_SWITCH = "3275927034523"
+KEYWORD_SUB = "0094723443045"
 
 my_username = input("Username: ")
 client_soket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,13 +62,22 @@ while True:
                 connected = False
                 continue
             
-            elif len(username) > len(KEYWORD_CREATE):
-                #print(f"debug user {username} len {len(username)}, room [{username[len(KEYWORD_CREATE):]}]")
+            if len(username) > len(KEYWORD_CREATE):
+                
                 if username[:len(KEYWORD_CREATE)] == KEYWORD_CREATE:
                     current_room = username[len(KEYWORD_CREATE):]
-                    print(current_room, "cur room changed")
+                    print(current_room, " room created.")
                     continue
-            #elif
+            if len(username) > len(KEYWORD_SWITCH):
+                if username[:len(KEYWORD_SWITCH)] == KEYWORD_SWITCH:
+                    current_room = username[len(KEYWORD_CREATE):]
+                    print(f"switched to {current_room}.")
+                    continue  
+            if len(username) > len(KEYWORD_SUB):
+                if username[:len(KEYWORD_SUB)] == KEYWORD_SUB:
+                    sub_room_hist = username[len(KEYWORD_SUB):]
+                    print(sub_room_hist)
+                    continue                 
             
             
             message_header = client_soket.recv(HEADER_LENGTH)

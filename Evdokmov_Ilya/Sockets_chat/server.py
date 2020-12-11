@@ -8,6 +8,7 @@ PORT = 3000
 KEYWORD_DICONNECT = "00934283979723"
 KEYWORD_CREATE = "0000983275890"
 KEYWORD_SWITCH = "3275927034523"
+KEYWORD_SUB = "0094723443045"
 
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,13 +21,10 @@ server_socket.listen()
 sockets_list = [server_socket]
 clients = {}
 
-default_history = ['server> 1', 'server> 2','server> 3','server> server started']
+default_history = ['server> server started']
+rooms = {"default": {"sockets":[], "history": default_history, "names":[]}}
 
-rooms = {"default": {"sockets":[server_socket], "history": default_history, "names":[]}}
-users_online = []
-
-
-optional_commands = ["\create", "\sub", "\exit", "\swich"]
+optional_commands = ["\create", "\sub", "\exit", "\switch"]  #\see - to show user existing rooms  (will be added)
 
 
 def wrap_send_msg(message):
@@ -71,7 +69,7 @@ def create_room(new_name, client_socket, rooms):
             #continue
             return False
     
-        rooms[new_name] = {"sockets":[server_socket, client_socket], "history": [], "names":[username]}
+        rooms[new_name] = {"sockets":[client_socket], "history": [], "names":[username]}
 
         print(f"room {new_name} created.")
         return new_name
@@ -79,6 +77,65 @@ def create_room(new_name, client_socket, rooms):
     except:
         return False
     
+    
+def sub_room(msg_room, client_socket, rooms):
+    try:
+        
+        if not msg_room or not msg_room in rooms:
+            fault_msg = wrap_send_msg("Can't sub to the room.")
+            client_socket.send(bytes(fault_msg))
+            #user = receive_message(client_socket)
+            #continue
+            return False
+        
+        if client_socket in rooms[msg_room]["sockets"]:
+            fault_msg = wrap_send_msg(f"Already subscripted to the [{msg_room}].")
+            client_socket.send(bytes(fault_msg))
+            return False
+    
+        rooms[msg_room]["sockets"].append(client_socket) #{"sockets":[server_socket, client_socket], "history": [], "names":[username]}
+
+        print(f"sub to {msg_room}.")
+        return msg_room
+    
+    except:
+        return False
+    
+
+def remove_client(del_socket, rooms, clients):
+    username = ""
+    if del_socket in clients:
+        username = clients[notified_socket][0]['data'].decode("utf-8")
+        del clients[notified_socket]
+        
+    for room in rooms:
+        if del_socket in rooms[room]["sockets"]:
+            if room != "default":
+                try:
+                    rooms[room]["names"].remove(username)
+                except:
+                    pass
+            rooms[room]["sockets"].remove(del_socket)
+        
+    sockets_list.remove(notified_socket)
+    
+    
+def get_command(msg_data):
+    
+    msg_cmd = ""
+    for i in range(len(msg_data)):
+        if msg_data[i] == ' ':
+            break
+        msg_cmd += msg_data[i]
+    
+    msg_room = ""
+    if len(msg_cmd) < len(msg_data) + 1:
+        msg_room = msg_data[len(msg_cmd) + 1:]
+        
+    return (msg_cmd, msg_room)
+
+
+
     
 while True:
     read_sockets, _, exception_sockets = select.select(sockets_list, [], sockets_list)
@@ -96,8 +153,9 @@ while True:
                 continue
             
             sockets_list.append(client_socket)
-            
             clients[client_socket] = [user, {"active":"default", "subs":[]}]
+            rooms["default"]["sockets"].append(client_socket)
+            rooms["default"]["names"].append(user['data'].decode('utf-8'))
             
             print(f"Accepted new connection from {client_address[0]}:{client_address[1]} username {user['data'].decode('utf-8')}")
             
@@ -119,34 +177,42 @@ while True:
             #check if its a command:
             msg_data = message['data'].decode('utf-8')
             
-            
-                
-            msg_cmd = ""
-            for i in range(len(msg_data)):
-                if msg_data[i] == ' ':
-                    break
-                msg_cmd += msg_data[i]
-            
-            msg_room = ""
-            if len(msg_cmd) < len(msg_data) + 1:
-                msg_room = msg_data[len(msg_cmd) + 1:]
+            msg_cmd, msg_room = get_command(msg_data)
             
             if msg_cmd in optional_commands:
                 print(f"command {msg_cmd} from user {username}, targeted room {msg_room}")
                 cmd = msg_cmd
                 if cmd == "\exit":
-                    #removing notified socket from everything
+                    #removing notified_socket from everything
                     notified_socket.send(bytes(wrap_send_msg(KEYWORD_DICONNECT)))
-                    sockets_list.remove(notified_socket)
-                    del clients[notified_socket]                    
-                    #from rooms also
+                    remove_client(notified_socket, rooms, clients)
                     print(f"Closed connection from {username}")
                 elif cmd == "\switch":
                     #switching the room to wich user will write
+                    if not msg_room or msg_room == "default":
+                        notified_socket.send(bytes(wrap_send_msg("server>")))
+                        notified_socket.send(bytes(wrap_send_msg("Cant switch to room with no name and to default room.")))          
+                        continue
+                    
                     if msg_room in rooms:
+                        if username in rooms[msg_room]["names"]:
+                            notified_socket.send(bytes(wrap_send_msg("server>")))
+                            notified_socket.send(bytes(wrap_send_msg(f"User with name {username} is already in the room.")))
+                            continue
+                        
+                        prev_room = clients[notified_socket][1]["active"]
+                        if not (prev_room in user[1]["subs"]):
+                            rooms[prev_room]["sockets"].remove(notified_socket)
+                            rooms[prev_room]["names"].remove(username)
+                        
                         clients[notified_socket][1]["active"] = rm_name
                         notified_socket.send(bytes(wrap_send_msg(KEYWORD_SWITCH + msg_room)))
+                        if not (notified_socket in rooms[msg_room]["sockets"]):
+                            rooms[msg_room]["sockets"].append(notified_socket)
+                            rooms[msg_room]["names"].append(username)
+                            
                     else:
+                        notified_socket.send(bytes(wrap_send_msg("server>")))
                         notified_socket.send(bytes(wrap_send_msg("No such room.")))
                     
                 elif cmd == "\create":
@@ -156,31 +222,58 @@ while True:
                     if rm_name:
                         print(f"[{rm_name}] room created succesfully by {username}")
                         notified_socket.send(bytes(wrap_send_msg(KEYWORD_CREATE + rm_name)))
+                        prev_room = clients[notified_socket][1]["active"]
+                        if not (prev_room in user[1]["subs"]):
+                            rooms[prev_room]["sockets"].remove(notified_socket)
+                            rooms[prev_room]["names"].remove(username)
+                            
                         clients[notified_socket][1]["active"] = rm_name
                     else:
                         print("creation of room failed")
+                        
                 elif cmd == "\sub":
-                    #adding user to the room
-                    pass
+                    #adding user to the recivers of the room (user will receive msgs from that room)
+                    if not msg_room:
+                        notified_socket.send(bytes(wrap_send_msg("Cant sub to room with no name.")))
+                        
+                    rm_name = sub_room(msg_room, notified_socket, rooms)
+                    if rm_name:
+                        print(f"{username} succesfully sub to [{rm_name}]")
+                        user[1]["subs"].append(rm_name)
+                        #send history
+                        HISTORY = f"Sub to [{rm_name}] confirmed.\nHistory of [{rm_name}]:\n"
+                        for hmsg in rooms[rm_name]["history"]:
+                            HISTORY += (hmsg + '\n')
+                        HISTORY += "--- that's all.\n"
+                        notified_socket.send(bytes(wrap_send_msg(KEYWORD_SUB + HISTORY)))
+                    else:
+                        print("sub to room failed")
+                        notified_socket.send(bytes(wrap_send_msg(f"sub to room [{msg_room}] failed.")))
+                        
                 continue
             
-            print(f"Received message from {user[0]['data'].decode('utf-8')}: {message['data'].decode('utf-8')}")
+            print(f"Received message from [{user[1]['active']}]{user[0]['data'].decode('utf-8')}: {message['data'].decode('utf-8')}")
             
-            
-            #Here wewant to send it only to the user with common rooms
-            #Or only for one room
-            #Only for users from curent room of user
-            
-            #what we send:
-            
-            #text = user['header'] + user['data'] + message['header'] + message['data']
-            
-            #for clients in his current room
-            for client_socket in clients:
-                if client_socket != notified_socket:
-                    client_socket.send(user[0]['header'] + user[0]['data'] + message['header'] + message['data'])
+
+            #sends messages to clients in his current room
+            active_room = user[1]["active"]
+            #for client_socket in clients: 
+            for client_socket in rooms[active_room]["sockets"]: 
+                if client_socket != notified_socket:   #and clients[client_socket][1]["active"] == active_room:
+                    usrnm = user[0]['data'].decode("utf-8")
+                    user_info = wrap_send_msg(f"[{active_room}]" + usrnm)
+                    
+                    new_msg_txt = f"[{active_room}]{usrnm}> {message['data'].decode('utf-8')}"
+                    new_message = user_info + message['header'] + message['data'] #in bytes
+                    #new_message = user[0]["header"] + user[0]["data"] + message["header"] + message["data"]
+                    client_socket.send(bytes(new_message))
+                    rooms[active_room]["history"].append(new_msg_txt)
+                    
+                    #print(f"History of room [{active_room}] updated.")
+                    #print(rooms[active_room]["history"])
+                
                     
                     
     for notified_socket in exception_sockets:
-        sockets_list.remove(notified_socket)
-        del clients[notified_socket]
+        remove_client(notified_socket, rooms)
+                
