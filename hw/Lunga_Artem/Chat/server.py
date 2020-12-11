@@ -6,9 +6,35 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_socket.bind(SERVER_ADDRESS)
 clients = []
 members = {}
+room_story = []
+ROOM = ""
 print("Server is running")
 
 def registration(port_address):
+
+    rooms_data = 'Необходимо выбрать комнату, введите room1, room2, room3'
+    server_socket.sendto(rooms_data.encode('utf-8'), address)
+        
+    def confirm_rooms_1(port_address):
+        name, address = server_socket.recvfrom(1024)
+        if (name.decode('utf-8') == "room1" or name.decode('utf-8') == "room2" 
+            or name.decode('utf-8') == "room3"):
+            global ROOM
+            ROOM = name.decode('utf-8')
+            enter = "Вы вошли в " + name.decode('utf-8')
+            server_socket.sendto(enter.encode('utf-8'), address)
+        else:
+            no_enter = "Введённое значение некорректно"
+            server_socket.sendto(no_enter.encode('utf-8'), address)
+            uncorrect_room(port_address)
+            
+    def uncorrect_room(port_address):
+        rooms_data = 'Необходимо выбрать комнату, введите room1, room2, room3'
+        server_socket.sendto(rooms_data.encode('utf-8'), port_address)
+        confirm_rooms_1(port_address)
+
+    confirm_rooms_1(port_address)
+    
     register_data = 'Необходимо пройти регистрацию, введите свой ник: '
     server_socket.sendto(register_data.encode('utf-8'), address)
 
@@ -50,7 +76,8 @@ def registration(port_address):
 
     confirm_nickname(port_address)
 
-p = []
+INDEX = 0
+FLAG = False
 
 while True:
     data, address = server_socket.recvfrom(1024)
@@ -58,28 +85,58 @@ while True:
     if address not in clients:
         clients.append(address)
         registration(address)
-        text = "Добро пожаловать в чат!\nВы можете посмотреть историю чата, если напишите 'story'."
+        text = ("Добро пожаловать в чат!\n" +
+                "Вы можете посмотреть историю чата, если напишите 'story'.\n" +
+                "Вы можете сменить комнату, если напишите 'room'\n" +
+                "С помощью команды 'room' вы сожете перезайти в комнату" +
+                "Вы можете выйти, если введёте 'Ctrl + C'")
         server_socket.sendto(text.encode('utf-8'), address)
 
     for client in clients:
 
         if client == address:
             text_from_client = data.decode('utf-8')
-            p.append(text_from_client)
-            print ("[" + members + "]")
-            if (text_from_client != "story" and text_from_client != "Story"):
+            room_story.append(text_from_client)
+            
+            print ("[" + members + ", " + ROOM + "]")
+            
+            if (text_from_client == "room"):
+                INDEX = len(room_story)
+                FLAG = True
+                registration(address)
+                text = ("Добро пожаловать в чат!\n" +
+                        "Вы можете посмотреть историю чата, если напишите 'story'.\n" +
+                        "Вы можете сменить комнату, если напишите 'room'\n" +
+                        "С помощью команды 'room' вы сожете перезайти в комнату" +
+                        "Вы можете выйти, если введёте 'Ctrl + C'")
+                server_socket.sendto(text.encode('utf-8'), address)
+                text_from_client = data.decode('utf-8')                
+            
+            if (text_from_client != "story" and text_from_client != "Story" 
+                and text_from_client != "room"):
                 print(text_from_client)
+        
+                
             if (text_from_client == "story" or text_from_client == "Story"):
-                print("Story of chat:")
-                p.remove('Connect to server')
-                if text_from_client == "Story":
-                    p.insert(1, 'story')
-                if text_from_client == "story":
-                    p.insert(1, 'Story')
-                p.remove('story')
-                p.remove('Story')
-                print(p)
-                p.insert(1,'Connect to server')
+                print("История чата:")
+                if (FLAG):
+                    if text_from_client == "Story":
+                        room_story.insert(1, 'story')
+                    if text_from_client == "story":
+                        room_story.insert(1, 'Story')
+                    room_story.remove('story')
+                    room_story.remove('Story')
+                    print (room_story[INDEX::])
+                else:
+                    room_story.remove('Connect to server')
+                    if text_from_client == "Story":
+                        room_story.insert(1, 'story')
+                    if text_from_client == "story":
+                        room_story.insert(1, 'Story')
+                    room_story.remove('story')
+                    room_story.remove('Story')
+                    print(room_story)
+                    room_story.insert(1,'Connect to server')
             
             continue
 
