@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import *
 
 
 # Game configuration
-width = 150
+width = 100
 height = 100
 screenShrink = 1.2
 
@@ -122,6 +122,15 @@ class GameField:
 
         # Set the count of neighbours of each cell as zero at start
         neighbours = 0
+        
+        if (x - 1 < 0):
+            x = width - 1
+        if (y - 1 < 0):
+            y = height - 1
+        if (x + 1 == width):
+            x = 0
+        if (y + 1 == height):
+            y = 0
 
         # Top row
         if (self.cells[x - 1][y + 1]):
@@ -152,10 +161,11 @@ class GameField:
 
         newCells = [[False] * height for i in range(width)]
 
-        for x in range(1, width - 1):
-            for y in range(1, height - 1):
+        for x in range(0, width):
+            for y in range(0, height):
                 # Rules from: https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
                 neighbours = self.calculateNeighbours(x, y)
+    
 
                 # 1. Any live cell with fewer than two live neighbours dies,
                 # as if by underpopulation.
@@ -184,6 +194,7 @@ class GameField:
                     newCells[x][y] = True
                     callback(x, y, True)
                     continue
+                    
 
                 callback(x, y, False)
 
@@ -264,7 +275,7 @@ class LifeWindow(QWidget):
 
     def resizeEvent(self, event):
         # Allways upon user resizing the window the aspect ratio is kept at 3:2
-        self.graphicsView.fitInView(0, 0, 600, 400, Qt.KeepAspectRatio)
+        self.graphicsView.fitInView(0, 0, 400, 400, Qt.KeepAspectRatio)
 
     def pushButtonStartClicked(self):
         # Start the graphicsscenes own timer and start the whole game and its
