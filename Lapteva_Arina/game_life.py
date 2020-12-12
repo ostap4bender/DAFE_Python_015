@@ -58,12 +58,12 @@ class GameOfLife(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.resize(width_of_window, height_of_window)
+        self.setFixedSize(width_of_window, height_of_window)
         self.setWindowTitle("Game of Life")
 
         self.button_start = QPushButton("Start", self)
         self.button_start.setFont(QFont(font, 14))
-        self.button_start.setStyleSheet("background-color: cyan")
+        self.button_start.setStyleSheet("background-color: green")
         self.button_start.move(max_width_field + 2 * indent, indent)
         self.button_start.clicked.connect(self.initGame)
 
@@ -127,13 +127,32 @@ class GameOfLife(QWidget):
         self.button_size.move(max_width_field + 2 * indent, 18 * indent)
         self.button_size.clicked.connect(self.selectSize)
 
+        self.button_size = QPushButton("Delete\n field", self)
+        self.button_size.setFont(QFont(font, 14))
+        self.button_size.resize(130, 60)
+        self.button_size.move(max_width_field + 2 * indent, 20 * indent)
+        self.button_size.clicked.connect(self.resertSize)
+
+        self.button_clear = QPushButton("Clear", self)
+        self.button_clear.setFont(QFont(font, 14))
+        self.button_clear.setStyleSheet("background-color: cyan")
+        self.button_clear.move(max_width_field + 2 * indent, 22 * indent)
+        self.button_clear.clicked.connect(self.clearField)
+
         self.button_quit = QPushButton("Quit", self)
         self.button_quit.setFont(QFont(font, 14))
         self.button_quit.setStyleSheet("background-color: red")
-        self.button_quit.move(max_width_field + 2 * indent, 21 * indent)
+        self.button_quit.move(max_width_field + 2 * indent, 24 * indent)
         self.button_quit.clicked.connect(self.close)
 
         self.show()
+
+    def clearField(self):
+        for i in range(self.cell_width):
+            for j in range(self.cell_height):
+                self.field[i][j].status = False
+                self.field[i][j].setStyleSheet(deactivate_button)
+        self.activate_buttons = 0
 
     def changeColor(self):
         global activate_button
@@ -151,6 +170,12 @@ class GameOfLife(QWidget):
         self.height = self.input_h.value()
         self.cell_size = self.input_c.value()
         self.drawButtons()
+
+    def resertSize(self):
+        if not self.field == []:
+            for i in self.field:
+                for j in i:
+                    j.hide()
 
     def drawButtons(self):
         if not self.field == []:
