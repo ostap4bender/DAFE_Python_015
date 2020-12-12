@@ -24,7 +24,7 @@ clients = {}
 default_history = ['server> server started']
 rooms = {"default": {"sockets":[], "history": default_history, "names":[]}}
 
-optional_commands = ["\create", "\sub", "\exit", "\switch"]  #\see - to show user existing rooms  (will be added)
+optional_commands = ["\create", "\sub", "\exit", "\switch", "\see", "\cnclsub"]  #\see - to show user existing rooms  (will be added)
 
 
 def wrap_send_msg(message):
@@ -202,14 +202,12 @@ while True:
                         prev_room = clients[notified_socket][1]["active"]
                         #debug:
                         print(f"{username} leaving room [{prev_room}]")
-                        print(f"subs of user {username}: {user[1]['subs']}")
                         if not (prev_room in user[1]["subs"]):
                             rooms[prev_room]["sockets"].remove(notified_socket)
                             rooms[prev_room]["names"].remove(username)
                             print("removing suc.")
                         
                         clients[notified_socket][1]['active'] = msg_room
-                        print(f"User active room now is: ", clients[notified_socket][1]['active'])
                         notified_socket.send(bytes(wrap_send_msg(KEYWORD_SWITCH + msg_room)))
                         if not (notified_socket in rooms[msg_room]["sockets"]):
                             rooms[msg_room]["sockets"].append(notified_socket)
@@ -221,8 +219,15 @@ while True:
                     
                 elif cmd == "\create":
                     if not msg_room:
+                        notified_socket.send(bytes(wrap_send_msg("server>")))
                         notified_socket.send(bytes(wrap_send_msg("Cant create the room with no name.")))
-                        
+                        continue
+                    
+                    if msg_room in rooms:
+                        notified_socket.send(bytes(wrap_send_msg("server>")))
+                        notified_socket.send(bytes(wrap_send_msg(f"Room [{msg_room}] already exists."))) 
+                        continue
+                       
                     rm_name = create_room(msg_room, notified_socket, rooms)
                     if rm_name:
                         print(f"[{rm_name}] room created succesfully by {username}")
@@ -235,6 +240,14 @@ while True:
                         clients[notified_socket][1]["active"] = rm_name
                     else:
                         print("creation of room failed")
+                        
+                elif cmd == "\see":
+                    ROOMS_TXT = f"Rooms on the server:\n"
+                    for rm in rooms:
+                        ROOMS_TXT += ('[' + rm + ']\n')
+                    ROOMS_TXT += "--- all rooms.\n"
+                    notified_socket.send(bytes(wrap_send_msg("server>")))
+                    notified_socket.send(bytes(wrap_send_msg(ROOMS_TXT)))                    
                         
                 elif cmd == "\sub":
                     #adding user to the recivers of the room (user will receive msgs from that room)
@@ -254,6 +267,28 @@ while True:
                     else:
                         print("sub to room failed")
                         notified_socket.send(bytes(wrap_send_msg(f"sub to room [{msg_room}] failed.")))
+                        
+                elif cmd == "\cnclsub":
+                    if not msg_room:
+                        notified_socket.send(bytes(wrap_send_msg("server>")))
+                        notified_socket.send(bytes(wrap_send_msg("Cant cancel sub to the room with no name.")))                    
+                    elif msg_room not in rooms:
+                        notified_socket.send(bytes(wrap_send_msg("server>")))
+                        notified_socket.send(bytes(wrap_send_msg("Cant cancel sub to not existing room.")))                           
+                    elif not (msg_room in clients[notified_socket][1]["subs"]):
+                        notified_socket.send(bytes(wrap_send_msg("server>")))
+                        notified_socket.send(bytes(wrap_send_msg(f"You have no sub to room {msg_room}.")))
+                    else:
+                        clients[notified_socket][1]["subs"].remove(msg_room)
+                        
+                        if msg_room != clients[notified_socket][1]["active"]:
+                            try:
+                                rooms[msg_room]["sockets"].remove(notified_socket)
+                            except:
+                                #print("room of unsub lost his socket")
+                                pass
+                        notified_socket.send(bytes(wrap_send_msg("server>")))
+                        notified_socket.send(bytes(wrap_send_msg(f"succesfully unsub from room: [{msg_room}].")))
                         
                 continue
             

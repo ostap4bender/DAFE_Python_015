@@ -24,7 +24,8 @@ client_soket.send(username_header + username)
 
 
 optional_comands = ["\create  -  to create a room", "\sub - to subscribe to existing room",
-                    "\exit  -  to leave the server", "\switch  -  to start texting to another room"]
+                    "\switch  -  to start texting to another room", "\see - to see existing rooms",
+                    "\cnclsub - to cancel sub", "\exit  -  to leave the server"]
 
 welcome_message = f"Hi, {username.decode('utf-8')}!\nYou've connected to the soket-chat server!\nOptional commands:\n"
 for cmd in optional_comands:
